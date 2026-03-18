@@ -1,0 +1,501 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#1a1a2e" media="(prefers-color-scheme: dark)">
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Im Mesh">
+    <meta name="description" content="Im Mesh Client - Web-based Meshtastic mesh radio client">
+    <title>Im Mesh Client</title>
+    <link rel="stylesheet" href="/static/css/base.css?v=26">
+    <link rel="stylesheet" href="/static/css/layout.css?v=26">
+    <link rel="stylesheet" href="/static/css/components.css?v=26">
+    <link rel="stylesheet" href="/static/css/panels.css?v=26">
+    <link rel="stylesheet" href="/static/css/mobile.css?v=26">
+    <link rel="manifest" href="/static/manifest.json">
+    <link rel="icon" href="/static/icon-192.svg" type="image/svg+xml">
+    <link rel="apple-touch-icon" href="/static/icon-192.svg">
+</head>
+<body>
+    <div class="container">
+        <!-- Session Setup (shown before connection) -->
+        <div id="sessionSetup" class="session-setup">
+            <div class="session-card">
+                <div class="session-card-header">
+                    <div class="session-logo">
+                        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="2"/>
+                            <path d="M16.24 7.76a6 6 0 0 1 0 8.49"/>
+                            <path d="M7.76 16.24a6 6 0 0 1 0-8.49"/>
+                            <path d="M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                            <path d="M4.93 19.07a10 10 0 0 1 0-14.14"/>
+                        </svg>
+                    </div>
+                    <h1>Im Mesh Client</h1>
+                    <p class="session-card-subtitle">Connect to your Meshtastic node via TCP or Serial</p>
+                </div>
+                
+                <form id="sessionForm" class="session-form">
+                    <div class="form-group">
+                        <label class="form-label">Connection Type</label>
+                        <div class="connection-type-toggle">
+                            <button type="button" id="connTypeTcp" class="conn-type-btn conn-type-active" onclick="window.meshtasticClient ? window.meshtasticClient.setConnectionType('tcp') : setConnectionType('tcp')">TCP</button>
+                            <button type="button" id="connTypeSerial" class="conn-type-btn" onclick="window.meshtasticClient ? window.meshtasticClient.setConnectionType('serial') : setConnectionType('serial')">Serial</button>
+                        </div>
+                    </div>
+
+                    <div id="tcpFields">
+                        <div class="form-group">
+                            <label for="host" class="form-label">Host</label>
+                            <input type="text" id="host" name="host" value="ucon.cube.sg" required 
+                                   class="form-input"
+                                   placeholder="e.g., ucon.cube.sg or 192.168.1.100">
+                        </div>
+                        
+                        <div class="session-form-row">
+                            <div class="form-group" style="flex: 1;">
+                                <label for="port" class="form-label">Port</label>
+                                <input type="number" id="port" name="port" value="4403" required 
+                                       class="form-input"
+                                       min="1" max="65535" placeholder="4403">
+                            </div>
+                            
+                            <div class="form-group" style="flex: 2;">
+                                <label for="session_name" class="form-label">Session Name <span class="form-hint">optional</span></label>
+                                <input type="text" id="session_name" name="session_name" 
+                                       class="form-input"
+                                       placeholder="My Session">
+                            </div>
+                        </div>
+                    </div>
+
+                    <div id="serialFields" style="display: none;">
+                        <div class="form-group">
+                            <label for="serialPort" class="form-label">Serial Port</label>
+                            <input type="text" id="serialPort" name="serialPort" 
+                                   class="form-input"
+                                   placeholder="e.g., /dev/ttyUSB0 or /dev/ttyACM0 or COM3">
+                        </div>
+                        <div class="form-group">
+                            <label for="session_name_serial" class="form-label">Session Name <span class="form-hint">optional</span></label>
+                            <input type="text" id="session_name_serial" name="session_name_serial" 
+                                   class="form-input"
+                                   placeholder="My Device">
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary session-connect-btn">
+                        Connect
+                    </button>
+                    
+                    <div id="sessionStatus" class="session-status" style="display: none;"></div>
+                </form>
+                
+                <div class="existing-sessions-section">
+                    <div class="existing-sessions-header">
+                        <span class="existing-sessions-label">Previous Sessions</span>
+                    </div>
+                    <div id="existingSessions" class="sessions-list">
+                        <p class="sessions-loading">Checking for sessions...</p>
+                    </div>
+                </div>
+                
+                <div class="session-card-footer">
+                    <span>Im Mesh Client &middot; v2.1</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Application (shown after session is established) -->
+        <div id="mainApp" class="main-app" style="display: none;" role="application">
+            <!-- Header -->
+            <header class="header" role="banner">
+                <div class="header-left">
+                    <h1>🌐 Im Mesh Client</h1>
+                    <div class="session-info" id="sessionInfo" aria-label="Session information">
+                        <span class="session-name">Session</span>
+                        <span class="session-node" id="sessionNode">localhost:4403</span>
+                    </div>
+                </div>
+                <div class="header-right">
+                    <div class="connection-status" id="connectionStatus" role="status" aria-live="polite">
+                        <span class="status-dot" id="statusDot" aria-hidden="true"></span>
+                        <span id="statusText">Disconnected</span>
+                    </div>
+                    <button id="toggleLayoutBtn" class="btn btn-small btn-outline" title="Toggle mobile/desktop layout" aria-label="Toggle mobile/desktop layout">📱</button>
+                </div>
+            </header>
+
+            <!-- Main Content -->
+            <div class="main-content">
+                <!-- Left Sidebar (Channels & Actions) -->
+                <aside class="sidebar sidebar-left" role="complementary" aria-label="Channels and actions">
+                    <div class="sidebar-content">
+                        <!-- Channels Section -->
+                        <div class="section channels-section">
+                            <h3>📻 Channels</h3>
+                            <div id="channelsList" class="channels-list">
+                                <div class="channel-item">Loading...</div>
+                            </div>
+                            <button class="btn btn-small btn-outline" onclick="meshtasticClient.loadChannels()">
+                                Refresh Channels
+                            </button>
+                        </div>
+
+                        <!-- Actions Section (hidden on mobile Channels tab, shown on More tab) -->
+                        <div class="section mobile-more-section">
+                            <h3>⚙️ Actions</h3>
+                            <div class="actions-container">
+                                <button id="settingsBtn" class="btn btn-secondary btn-small">Settings</button>
+                                <button class="btn btn-outline btn-small" onclick="meshtasticClient.syncDevice()">
+                                    Sync Device
+                                </button>
+                                <button id="showLogBtn" class="btn btn-outline btn-small">Show Log</button>
+                                <button class="btn btn-outline btn-small" onclick="meshtasticClient.showNodeMap()">
+                                    Node Map
+                                </button>
+                                <button id="disconnectBtn" class="btn btn-outline btn-small btn-danger">
+                                    Disconnect
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- Stats Section (hidden on mobile Channels tab, shown on More tab) -->
+                        <div class="section mobile-more-section">
+                            <h3>📊 Statistics</h3>
+                            <div id="statsContainer" class="stats-container">
+                                <div class="stat-item">
+                                    <span class="stat-label">Total Nodes:</span>
+                                    <span id="totalNodes" class="stat-value">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Online:</span>
+                                    <span id="onlineNodes" class="stat-value">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Channels:</span>
+                                    <span id="totalChannels" class="stat-value">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Favorites:</span>
+                                    <span id="favoriteNodes" class="stat-value">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">Messages:</span>
+                                    <span id="messageCount" class="stat-value">0</span>
+                                </div>
+                                <div class="stat-item">
+                                    <span class="stat-label">With Position:</span>
+                                    <span id="fragmentCount" class="stat-value">0</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </aside>
+
+                <!-- Chat Area -->
+                <main class="chat-area" role="main" aria-label="Messages">
+                    <div class="chat-header">
+                        <div class="channel-info">
+                            <div class="channel-name" id="chatTargetLabel">Primary Channel</div>
+                            <div class="channel-status" id="channelStatus">Ready</div>
+                        </div>
+                    </div>
+
+                    <div class="messages-container" id="messagesContainer" role="log" aria-live="polite" aria-label="Message history">
+                        <div class="message text">
+                            <div class="message-header">
+                                <span class="message-from">System</span>
+                                <span class="message-time">Just now</span>
+                            </div>
+                            <div class="message-content">Welcome to Im Mesh Client! Your session is being established...</div>
+                        </div>
+                    </div>
+
+                    <!-- Message Input Area -->
+                    <div class="message-input-area">
+                        <div class="input-row">
+                            <input type="text" id="messageInput" class="message-input" placeholder="Type your message..." maxlength="200" aria-label="Message text">
+                            <button id="sendButton" class="btn btn-primary" aria-label="Send message">Send</button>
+                        </div>
+                        <div class="input-controls">
+                            <button id="uploadImageButton" class="btn btn-secondary">Upload Image</button>
+                        </div>
+                    </div>
+                </main>
+
+                <!-- Right Sidebar (Nodes Panel) -->
+                <aside class="sidebar sidebar-right nodes-panel" role="complementary" aria-label="Node list">
+                    <div class="sidebar-content">
+                        <!-- Favorite Nodes Section -->
+                        <div class="section favorites-section">
+                            <h3>⭐ Favorites</h3>
+                            <div id="favoritesList" class="favorites-list nodes-list">
+                                <div class="node-item">No favorites yet</div>
+                            </div>
+                        </div>
+                        
+                        <!-- Node Detail Panel (shown when a node is selected) -->
+                        <div id="nodeDetailPanel" class="section node-detail-section" style="display: none;">
+                            <h3 id="nodeDetailTitle">Node Details</h3>
+                            <div id="nodeDetailContent" class="node-detail-content">
+                            </div>
+                        </div>
+                        
+                        <!-- All Nodes Section -->
+                        <div class="section nodes-section">
+                            <div class="nodes-header-row">
+                                <h3>📡 All Nodes</h3>
+                                <span id="nodeCountLabel" class="node-count-label"></span>
+                            </div>
+                            <input type="text" id="nodeSearchInput" class="node-search-input" placeholder="Filter nodes..." autocomplete="off" aria-label="Filter nodes">
+                            <div id="nodesList" class="nodes-list">
+                                <div class="node-item">Loading...</div>
+                            </div>
+                            <button class="btn btn-small btn-outline" onclick="meshtasticClient.loadNodes()" style="margin-top: 10px;">
+                                Refresh Nodes
+                            </button>
+                        </div>
+                    </div>
+                </aside>
+            </div>
+
+            <!-- Mobile Bottom Tab Bar (hidden on desktop) -->
+            <nav class="mobile-tab-bar" id="mobileTabBar" role="tablist" aria-label="Navigation tabs">
+                <button class="mobile-tab" data-tab="channels" id="tabChannels" role="tab" aria-label="Channels">
+                    <span class="mobile-tab-icon" aria-hidden="true">📻</span>
+                    <span class="mobile-tab-label">Channels</span>
+                </button>
+                <button class="mobile-tab active" data-tab="chat" id="tabChat" role="tab" aria-selected="true" aria-label="Chat">
+                    <span class="mobile-tab-icon" aria-hidden="true">💬</span>
+                    <span class="mobile-tab-label">Chat</span>
+                </button>
+                <button class="mobile-tab" data-tab="nodes" id="tabNodes" role="tab" aria-label="Nodes">
+                    <span class="mobile-tab-icon" aria-hidden="true">📡</span>
+                    <span class="mobile-tab-label">Nodes</span>
+                </button>
+                <button class="mobile-tab" data-tab="more" id="tabMore" role="tab" aria-label="More options">
+                    <span class="mobile-tab-icon" aria-hidden="true">⋯</span>
+                    <span class="mobile-tab-label">More</span>
+                </button>
+            </nav>
+
+            <!-- Communication Log Section (below main content, resizable) -->
+            <div class="communication-log" id="communicationLog" style="display: none;" role="log" aria-label="Communication log">
+                <div class="log-resize-handle" id="logResizeHandle" title="Drag to resize"></div>
+                <div class="log-header">
+                    <h4>Communication Log</h4>
+                    <div class="log-controls">
+                        <button id="toggleLog" class="btn btn-small btn-outline">Hide Log</button>
+                        <button id="clearLog" class="btn btn-small btn-outline">Clear</button>
+                    </div>
+                </div>
+                <div class="log-content" id="logContent">
+                    <div class="log-entry">Communication log will appear here...</div>
+                </div>
+            </div>
+
+            <!-- Image Upload Modal -->
+            <div id="imageUploadModal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="imageUploadTitle">
+                <div class="modal-content" style="max-width: 600px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title" id="imageUploadTitle">Upload Image</h3>
+                        <button class="btn btn-small btn-outline" id="closeImageModal" aria-label="Close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <div class="form-group">
+                            <label class="form-label">Select Image</label>
+                            <input type="file" id="imageFileInput" accept="image/*" class="form-input">
+                        </div>
+                        <div id="imagePreviewArea" style="display: none;">
+                            <div class="image-preview-row">
+                                <div class="image-preview-col">
+                                    <label class="form-label">Original</label>
+                                    <img id="originalPreview" style="max-width: 200px; max-height: 200px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                </div>
+                                <div class="image-preview-col">
+                                    <label class="form-label">Encoded Preview</label>
+                                    <img id="encodedPreview" style="max-width: 200px; max-height: 200px; border: 1px solid var(--border); border-radius: var(--radius);">
+                                </div>
+                            </div>
+                            <div id="encodingStats" class="encoding-stats" style="margin-top: 1rem; padding: 0.75rem; background: var(--background-secondary); border-radius: var(--radius); font-size: var(--font-size-sm);"></div>
+                        </div>
+                        <hr style="border: none; border-top: 1px solid var(--border); margin: 1rem 0;">
+                        <details>
+                            <summary style="cursor: pointer; font-weight: 500; color: var(--text-primary); margin-bottom: 0.75rem;">Encoding Settings</summary>
+                            <div class="encoding-settings-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+                                <div class="form-group">
+                                    <label class="form-label">Encoding Mode</label>
+                                    <select id="encMode" class="form-input" style="padding: 0.5rem;">
+                                        <option value="rle_nibble">RLE Nibble</option>
+                                        <option value="tile_rle">Tile RLE</option>
+                                        <option value="rle_nibble_xor" selected>RLE Nibble XOR (recommended)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label class="form-label">Bit Depth</label>
+                                    <select id="encBitDepth" class="form-input" style="padding: 0.5rem;">
+                                        <option value="1">1-bit (B&W)</option>
+                                        <option value="2">2-bit (4 levels)</option>
+                                        <option value="4">4-bit (16 levels)</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label class="form-label">Image Size</label>
+                                    <select id="encImageSize" class="form-input" style="padding: 0.5rem;">
+                                        <option value="128x64">128 x 64</option>
+                                        <option value="96x48">96 x 48</option>
+                                        <option value="64x32">64 x 32</option>
+                                        <option value="64x64" selected>64 x 64</option>
+                                        <option value="48x48">48 x 48</option>
+                                        <option value="32x32">32 x 32</option>
+                                    </select>
+                                </div>
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label class="form-label">Segment Length (bytes)</label>
+                                    <input type="number" id="encSegmentLen" class="form-input" value="200" min="200" max="300" style="padding: 0.5rem;">
+                                </div>
+                                <div class="form-group" style="grid-column: span 2;">
+                                    <label class="form-label">Send Method</label>
+                                    <select id="encSendMethod" class="form-input" style="padding: 0.5rem;">
+                                        <option value="text" selected>Text Messages (recommended)</option>
+                                        <option value="binary">Binary (BINARY_MESSAGE_APP)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </details>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline" id="encodePreviewBtn" style="display: none;">Encode Preview</button>
+                        <button class="btn btn-primary" id="confirmImageUpload" disabled>Send Image</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Settings Modal -->
+            <div id="settingsModal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+                <div class="modal-content" style="max-width: 500px;">
+                    <div class="modal-header">
+                        <h3 class="modal-title" id="settingsTitle">Settings</h3>
+                        <button class="btn btn-small btn-outline" id="closeSettingsModal" aria-label="Close">&times;</button>
+                    </div>
+                    <div class="modal-body">
+                        <h4 style="margin: 0 0 1rem 0; color: var(--text-primary);">Default Encoding Settings</h4>
+                        <div class="form-group">
+                            <label class="form-label">Encoding Mode</label>
+                            <select id="settingsEncMode" class="form-input" style="padding: 0.5rem;">
+                                <option value="rle_nibble">RLE Nibble</option>
+                                <option value="tile_rle">Tile RLE</option>
+                                <option value="rle_nibble_xor" selected>RLE Nibble XOR (recommended)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Default Image Size</label>
+                            <select id="settingsImageSize" class="form-input" style="padding: 0.5rem;">
+                                <option value="128x64">128 x 64</option>
+                                <option value="96x48">96 x 48</option>
+                                <option value="64x32">64 x 32</option>
+                                <option value="64x64" selected>64 x 64</option>
+                                <option value="48x48">48 x 48</option>
+                                <option value="32x32">32 x 32</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Bit Depth</label>
+                            <select id="settingsBitDepth" class="form-input" style="padding: 0.5rem;">
+                                <option value="1">1-bit (Black & White)</option>
+                                <option value="2">2-bit (4 Grayscale Levels)</option>
+                                <option value="4">4-bit (16 Grayscale Levels)</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">Packet Size Limit (bytes)</label>
+                            <input type="number" id="settingsSegmentLen" class="form-input" value="200" min="200" max="300" style="padding: 0.5rem;">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-outline" id="exportMessagesBtn" title="Download all messages as JSON">Export Messages</button>
+                        <div style="flex:1;"></div>
+                        <button class="btn btn-outline" id="cancelSettingsBtn">Cancel</button>
+                        <button class="btn btn-primary" id="saveSettingsBtn">Save</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast Container for notifications -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Communication Log Modal (mobile view) -->
+    <div id="logModal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="logModalTitle">
+        <div class="modal-content" style="max-width: 90vw; max-height: 90vh; width: 90vw; height: 80vh;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="logModalTitle">Communication Log</h3>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <button id="clearLogModal" class="btn btn-small btn-outline">Clear</button>
+                    <button class="btn btn-small btn-outline" id="closeLogModal" aria-label="Close">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="log-content" id="logContentModal">
+                    <div class="log-entry">Communication log will appear here...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Node Map Modal -->
+    <div id="nodeMapModal" class="modal" style="display: none;" role="dialog" aria-modal="true" aria-labelledby="nodeMapTitle">
+        <div class="modal-content" style="max-width: 90vw; max-height: 90vh; width: 90vw; height: 85vh;">
+            <div class="modal-header">
+                <h3 class="modal-title" id="nodeMapTitle">Node Map</h3>
+                <div style="display: flex; gap: 0.5rem; align-items: center;">
+                    <span id="mapNodeCount" style="color: var(--text-secondary); font-size: 0.85rem;">0 nodes with position</span>
+                    <span class="map-legend">
+                        <span class="map-legend-item"><span class="map-legend-dot" style="background:#F97316;"></span>Fav</span>
+                        <span class="map-legend-item"><span class="map-legend-dot" style="background:#059669;"></span>Online</span>
+                        <span class="map-legend-item"><span class="map-legend-dot" style="background:#3b82f6;"></span>Offline</span>
+                        <span class="map-legend-item"><span class="map-legend-dot user-location-legend-dot"></span>You</span>
+                    </span>
+                    <button class="btn btn-small btn-outline" id="mapMyLocation" aria-label="My Location" title="Zoom to my location">My Location</button>
+                    <button class="btn btn-small btn-outline" id="closeMapModal" aria-label="Close">&times;</button>
+                </div>
+            </div>
+            <div class="modal-body" style="padding: 0; flex: 1; min-height: 0;">
+                <div id="nodeMap" style="width: 100%; height: 100%; min-height: 400px;"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Leaflet CSS & JS for maps -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" crossorigin="">
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" crossorigin=""></script>
+    <!-- Leaflet MarkerCluster for dense node areas -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" crossorigin="">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" crossorigin="">
+    <script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js" crossorigin=""></script>
+
+    <script src="/static/storage.js?v=26"></script>
+    <script src="/static/js/app_core.js?v=26"></script>
+    <script src="/static/js/app_connection.js?v=26"></script>
+    <script src="/static/js/app_data.js?v=26"></script>
+    <script src="/static/js/app_nodes.js?v=26"></script>
+    <script src="/static/js/app_ui.js?v=26"></script>
+    <script src="/static/js/app_sessions.js?v=26"></script>
+    <script src="/static/js/app_messages.js?v=26"></script>
+    <script src="/static/js/app_images.js?v=26"></script>
+    <script src="/static/js/app_init.js?v=26"></script>
+    <script>
+        // Register service worker for offline support
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('/static/sw.js')
+                .then(reg => console.log('SW registered, scope:', reg.scope))
+                .catch(err => console.log('SW registration skipped:', err.message));
+        }
+    </script>
+</body>
+</html>

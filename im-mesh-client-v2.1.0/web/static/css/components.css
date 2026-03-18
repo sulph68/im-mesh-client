@@ -1,0 +1,373 @@
+/* ═══════════════════════════════════════════════════════════════════
+   COMPONENTS - Buttons, modals, forms, toasts, inputs, file upload
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Buttons */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.75rem 1.25rem;
+    border: 1px solid transparent;
+    border-radius: var(--radius);
+    font-size: var(--font-size-sm);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    text-decoration: none;
+    background: transparent;
+    color: var(--text-primary);
+    line-height: 1;
+    gap: 0.5rem;
+}
+
+.btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    pointer-events: none;
+}
+
+.btn-primary {
+    background: var(--accent-primary);
+    color: var(--background-primary);
+    border-color: var(--accent-primary);
+}
+
+.btn-primary:hover:not(:disabled) {
+    background: var(--accent-secondary);
+    border-color: var(--accent-secondary);
+}
+
+.btn-secondary {
+    border-color: var(--border);
+    background: var(--background-secondary);
+}
+
+.btn-secondary:hover:not(:disabled) {
+    background: var(--hover-bg);
+    border-color: var(--accent-secondary);
+}
+
+.btn-outline {
+    border-color: var(--accent-primary);
+    color: var(--accent-primary);
+}
+
+.btn-outline:hover:not(:disabled) {
+    background: var(--accent-primary);
+    color: var(--background-primary);
+}
+
+.btn-small {
+    padding: 0.5rem 0.75rem;
+    font-size: var(--font-size-xs);
+}
+
+.btn-icon {
+    padding: 0.5rem;
+    width: 36px;
+    height: 36px;
+}
+
+.btn-danger {
+    background: var(--error);
+    color: white;
+    border-color: var(--error);
+}
+
+.btn-danger:hover:not(:disabled) {
+    background: var(--error-dark);
+    border-color: var(--error-dark);
+}
+
+.btn-tiny {
+    padding: 0.1rem 0.4rem;
+    font-size: 0.7rem;
+    background: var(--background-secondary);
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.btn-tiny:hover {
+    background: var(--background-tertiary);
+}
+
+/* Modals */
+.modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+    animation: fadeIn 0.2s ease;
+}
+
+.modal-content {
+    background: var(--surface);
+    border-radius: var(--radius-lg);
+    box-shadow: var(--shadow-lg);
+    max-width: 90vw;
+    max-height: 90vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--border);
+    animation: slideUp 0.2s ease;
+}
+
+.modal-header {
+    padding: 1.5rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: var(--background-secondary);
+}
+
+.modal-title {
+    font-size: var(--font-size-lg);
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0;
+}
+
+.modal-body {
+    padding: 1.5rem;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.modal-footer {
+    padding: 1.5rem;
+    border-top: 1px solid var(--border);
+    display: flex;
+    gap: 0.75rem;
+    justify-content: flex-end;
+    background: var(--background-secondary);
+}
+
+/* Large modal variant */
+.modal-large .modal-content {
+    max-width: 90vw;
+    max-height: 90vh;
+    width: 800px;
+}
+
+@media (max-width: 768px) {
+    .modal-content {
+        max-width: 95vw;
+        margin: 1rem;
+    }
+}
+
+/* Form elements */
+.form-group {
+    margin-bottom: 1rem;
+}
+
+.form-group:last-child {
+    margin-bottom: 0;
+}
+
+.form-label {
+    display: block;
+    margin-bottom: 0.5rem;
+    font-weight: 500;
+    color: var(--text-primary);
+    font-size: var(--font-size-sm);
+}
+
+.form-input,
+.form-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: var(--font-size-base);
+    background: var(--background-primary);
+    color: var(--text-primary);
+    transition: all 0.15s ease;
+}
+
+.form-input:focus,
+.form-select:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.form-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* Input area */
+.input-area {
+    padding: 1rem 1.5rem;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+}
+
+.message-input input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: var(--font-size-base);
+    background: var(--background-primary);
+    color: var(--text-primary);
+    transition: all 0.15s ease;
+}
+
+.message-input input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 3px var(--focus-ring);
+}
+
+.message-input input::placeholder {
+    color: var(--text-tertiary);
+}
+
+/* File input */
+.file-input {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.file-input-label {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 2px dashed var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: all 0.15s ease;
+    font-size: var(--font-size-sm);
+    color: var(--text-secondary);
+}
+
+.file-input-label:hover {
+    border-color: var(--accent-secondary);
+    background: var(--hover-bg);
+}
+
+.file-input input[type="file"] {
+    display: none;
+}
+
+/* Message Input Area */
+.message-input-area {
+    border-top: 1px solid var(--border);
+    padding: 1rem;
+    background: var(--surface);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+    flex-shrink: 0; /* Never hide the input area */
+}
+
+.input-row {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+}
+
+.message-input {
+    flex: 1;
+    padding: 0.75rem 1rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    font-size: var(--font-size-base);
+    font-family: var(--font-family);
+    background: var(--background-primary);
+    color: var(--text-primary);
+    resize: none;
+    min-height: 44px;
+    max-height: 120px;
+    line-height: 1.5;
+}
+
+.message-input:focus {
+    outline: none;
+    border-color: var(--accent-primary);
+    box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
+.message-input::placeholder {
+    color: var(--text-tertiary);
+}
+
+.input-controls {
+    display: flex;
+    gap: 0.75rem;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+/* Toast Notifications */
+.toast-container {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 9999;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    pointer-events: none;
+}
+
+.toast {
+    padding: 1rem 1.5rem;
+    border-radius: var(--radius);
+    color: white;
+    font-weight: 500;
+    box-shadow: var(--shadow-lg);
+    max-width: 400px;
+    animation: slideIn 0.3s ease;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: opacity 0.3s ease;
+}
+
+.toast.info {
+    background: var(--info);
+}
+
+.toast.success {
+    background: var(--success);
+}
+
+.toast.warning {
+    background: var(--warning);
+}
+
+.toast.error {
+    background: var(--error);
+}
+
+.toast:hover {
+    opacity: 0.9;
+}
+
+@media (max-width: 768px) {
+    .toast-container {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+    }
+
+    .toast {
+        max-width: unset;
+    }
+}

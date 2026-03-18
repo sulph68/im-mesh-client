@@ -1,0 +1,215 @@
+/* ═══════════════════════════════════════════════════════════════════
+   BASE - Theme variables, dark/light mode, reset, typography
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+    /* Light mode colors (default) */
+    --background-primary: #ffffff;
+    --background-secondary: #f8fafc;
+    --background-tertiary: #f1f5f9;
+    --surface: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --text-tertiary: #64748b;
+    --border: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+
+    /* Accent colors - minimal and professional */
+    --accent-primary: #0f172a;
+    --accent-secondary: #334155;
+    --success: #059669;
+    --success-light: #22c55e;
+    --warning: #d97706;
+    --error: #dc2626;
+    --error-dark: #b91c1c;
+    --info: #2563eb;
+
+    /* Semantic action colors */
+    --selected: #f97316;
+    --selected-hover: #ea580c;
+    --selected-active: #c2410c;
+    --btn-dark: #4b5563;
+    --btn-dark-hover: #374151;
+    --btn-dark-active: #1f2937;
+    --purple: #8b5cf6;
+    --text-on-color: #ffffff;
+    --warning-amber: #f59e0b;
+    --info-blue: #3b82f6;
+    --text-muted: #666666;
+
+    /* Interactive states */
+    --hover-bg: rgba(0, 0, 0, 0.04);
+    --active-bg: rgba(0, 0, 0, 0.08);
+    --focus-ring: rgba(37, 99, 235, 0.2);
+
+    /* Border radius */
+    --radius-sm: 4px;
+    --radius: 6px;
+    --radius-lg: 8px;
+
+    /* Typography */
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+}
+
+/* Dark mode */
+@media (prefers-color-scheme: dark) {
+    :root {
+        --background-primary: #0f172a;
+        --background-secondary: #1e293b;
+        --background-tertiary: #334155;
+        --surface: #1e293b;
+        --text-primary: #f8fafc;
+        --text-secondary: #cbd5e1;
+        --text-tertiary: #94a3b8;
+        --border: #334155;
+        --border-light: #475569;
+        --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+        --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.3);
+
+        --accent-primary: #f8fafc;
+        --accent-secondary: #e2e8f0;
+        --hover-bg: rgba(255, 255, 255, 0.06);
+        --active-bg: rgba(255, 255, 255, 0.12);
+
+        --selected: #f97316;
+        --selected-hover: #ea580c;
+        --selected-active: #c2410c;
+        --btn-dark: #6b7280;
+        --btn-dark-hover: #4b5563;
+        --btn-dark-active: #374151;
+        --text-on-color: #ffffff;
+        --warning-amber: #fbbf24;
+        --info-blue: #60a5fa;
+        --text-muted: #9ca3af;
+    }
+}
+
+/* Force light mode class */
+.theme-light {
+    --background-primary: #ffffff;
+    --background-secondary: #f8fafc;
+    --background-tertiary: #f1f5f9;
+    --surface: #ffffff;
+    --text-primary: #1e293b;
+    --text-secondary: #475569;
+    --text-tertiary: #64748b;
+    --border: #e2e8f0;
+    --border-light: #f1f5f9;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.1);
+    --accent-primary: #0f172a;
+    --accent-secondary: #334155;
+    --hover-bg: rgba(0, 0, 0, 0.04);
+    --active-bg: rgba(0, 0, 0, 0.08);
+}
+
+/* Force dark mode class */
+.theme-dark {
+    --background-primary: #0f172a;
+    --background-secondary: #1e293b;
+    --background-tertiary: #334155;
+    --surface: #1e293b;
+    --text-primary: #f8fafc;
+    --text-secondary: #cbd5e1;
+    --text-tertiary: #94a3b8;
+    --border: #334155;
+    --border-light: #475569;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 10px 25px rgba(0, 0, 0, 0.3);
+    --accent-primary: #f8fafc;
+    --accent-secondary: #e2e8f0;
+    --hover-bg: rgba(255, 255, 255, 0.06);
+    --active-bg: rgba(255, 255, 255, 0.12);
+}
+
+/* Reset and base styles */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+/* Fix sticky hover on touch devices (iOS, Android) */
+button, .btn, .channel-item, .node-item, .session-item {
+    -webkit-tap-highlight-color: transparent;
+}
+
+/* On touch-only devices, disable hover effects to prevent sticky highlight */
+@media (hover: none) {
+    .node-item:hover,
+    .channel-item:hover,
+    .session-item:hover,
+    .message:hover {
+        background: inherit;
+    }
+    .node-actions .btn.btn-small:hover {
+        background: var(--btn-dark);
+    }
+    .node-item.selected .node-actions .btn.btn-small:hover {
+        background: var(--selected);
+    }
+    .btn-primary:hover:not(:disabled) {
+        background: var(--accent-primary);
+    }
+    .btn-secondary:hover:not(:disabled) {
+        background: var(--background-tertiary);
+    }
+    .file-input-label:hover {
+        background: var(--background-tertiary);
+    }
+}
+
+/* Active state for touch feedback (works on all devices) */
+button:active, .btn:active, .channel-item:active, .node-item:active {
+    opacity: 0.7;
+    transition: opacity 0.1s;
+}
+
+body {
+    font-family: var(--font-family);
+    background-color: var(--background-primary);
+    color: var(--text-primary);
+    line-height: 1.6;
+    font-size: var(--font-size-base);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.4; }
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+@keyframes slideUp {
+    from { 
+        opacity: 0;
+        transform: translateY(20px);
+    }
+    to { 
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        transform: translateX(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateX(0);
+        opacity: 1;
+    }
+}

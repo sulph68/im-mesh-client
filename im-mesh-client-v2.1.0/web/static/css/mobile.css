@@ -1,0 +1,355 @@
+/* ═══════════════════════════════════════════════════════════════════
+   MOBILE LAYOUT
+   Activated by body.mobile-mode class (JS toggles this)
+   Uses bottom tab bar for navigation between panels
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Mobile tab bar - hidden by default, shown in mobile mode */
+.mobile-tab-bar {
+    display: none;
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 56px;
+    background: var(--surface);
+    border-top: 1px solid var(--border);
+    box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
+    z-index: 100;
+    align-items: center;
+    justify-content: space-around;
+    padding: 0;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.mobile-tab {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    padding: 6px 0;
+    background: none;
+    border: none;
+    color: var(--text-tertiary);
+    font-size: 0.65rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: color 0.15s;
+    -webkit-tap-highlight-color: transparent;
+    min-height: 56px;
+}
+
+.mobile-tab.active {
+    color: var(--selected);
+}
+
+.mobile-tab-icon {
+    font-size: 1.25rem;
+    line-height: 1;
+}
+
+.mobile-tab-label {
+    font-size: 0.65rem;
+    line-height: 1;
+}
+
+/* ─── Mobile mode layout overrides ─── */
+body.mobile-mode .main-app {
+    height: 100vh;
+    height: 100dvh; /* Dynamic viewport height for mobile browsers */
+    padding-bottom: 56px; /* Space for tab bar */
+}
+
+body.mobile-mode .header {
+    padding: 0.5rem 0.75rem;
+    min-height: 48px;
+}
+
+body.mobile-mode .header h1 {
+    font-size: var(--font-size-base);
+}
+
+body.mobile-mode .header-left {
+    gap: 0.5rem;
+    min-width: 0;
+    overflow: hidden;
+}
+
+body.mobile-mode .session-info {
+    display: none;
+}
+
+body.mobile-mode .header-right {
+    gap: 0.5rem;
+    flex-shrink: 0;
+}
+
+body.mobile-mode .connection-status {
+    font-size: var(--font-size-xs);
+}
+
+body.mobile-mode #statusText {
+    display: none;
+}
+
+/* Hide desktop sidebars in mobile mode by default (JS controls visibility) */
+body.mobile-mode .main-content {
+    flex-direction: column;
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    overflow: hidden;
+}
+
+body.mobile-mode .sidebar {
+    width: 100%;
+    height: 100%;
+    border: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+body.mobile-mode .sidebar-left {
+    border-right: none;
+}
+
+body.mobile-mode .sidebar-right {
+    border-left: none;
+}
+
+body.mobile-mode .nodes-panel {
+    width: 100%;
+}
+
+/* Chat area in mobile - absolute positioned to fill main-content exactly */
+body.mobile-mode .chat-area {
+    min-width: 0;
+    flex: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 10;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+/* Messages container must scroll within the remaining space */
+body.mobile-mode .messages-container {
+    flex: 1 1 0%;       /* shrink AND grow, basis 0 */
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 0.5rem;
+    min-height: 0;      /* allow shrinking below content height */
+}
+
+body.mobile-mode .chat-header {
+    padding: 0.5rem 0.75rem;
+    min-height: 40px;
+    flex-shrink: 0;
+    flex-grow: 0;
+}
+
+body.mobile-mode .message-input-area {
+    padding: 0.5rem;
+    gap: 0.5rem;
+    flex-shrink: 0;
+    flex-grow: 0;
+}
+
+body.mobile-mode .message {
+    padding: 0.6rem 0.75rem;
+    margin-bottom: 0.5rem;
+}
+
+body.mobile-mode .message.sent {
+    margin-left: 1rem;
+}
+
+body.mobile-mode .message.received {
+    margin-right: 1rem;
+}
+
+body.mobile-mode .input-row {
+    gap: 0.5rem;
+}
+
+body.mobile-mode .message-input {
+    font-size: 16px; /* Prevents iOS zoom on focus */
+    padding: 0.5rem 0.75rem;
+    min-height: 40px;
+}
+
+body.mobile-mode .input-controls {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+/* Node items in mobile - larger touch targets */
+body.mobile-mode .node-item {
+    padding: 0.85rem 0.75rem;
+    min-height: 48px;
+}
+
+body.mobile-mode .node-actions .btn.btn-small {
+    padding: 0.35rem 0.5rem;
+    font-size: 0.7rem;
+    min-height: 32px;
+}
+
+/* Channel items in mobile - larger touch targets */
+body.mobile-mode .channel-item {
+    padding: 0.75rem;
+    min-height: 48px;
+}
+
+/* Mobile modals - full screen */
+body.mobile-mode .modal-content {
+    max-width: 100vw;
+    max-height: 100vh;
+    width: 100vw;
+    height: 100vh;
+    border-radius: 0;
+    margin: 0;
+}
+
+body.mobile-mode .modal-header {
+    padding: 0.75rem 1rem;
+}
+
+body.mobile-mode .modal-body {
+    padding: 1rem;
+}
+
+body.mobile-mode .modal-footer {
+    padding: 0.75rem 1rem;
+}
+
+/* Buttons slightly larger for touch */
+body.mobile-mode .btn {
+    min-height: 40px;
+    padding: 0.6rem 1rem;
+}
+
+body.mobile-mode .btn-small {
+    min-height: 32px;
+    padding: 0.4rem 0.6rem;
+}
+
+/* Node search input larger for touch */
+body.mobile-mode .node-search-input {
+    padding: 0.6rem 0.75rem;
+    font-size: var(--font-size-base);
+}
+
+/* Section headers more compact in mobile */
+body.mobile-mode .section h3 {
+    font-size: var(--font-size-xs);
+    margin-bottom: 0.5rem;
+}
+
+/* In mobile mode, hide Actions/Stats by default (shown only on "More" tab via JS) */
+body.mobile-mode .mobile-more-section {
+    display: none;
+}
+body.mobile-mode.show-more-sections .mobile-more-section {
+    display: block;
+}
+
+/* In mobile "More" tab, hide the channels list */
+body.mobile-mode.show-more-sections .channels-section {
+    display: none;
+}
+
+/* Communication log takes proper space in mobile "More" view */
+body.mobile-mode .communication-log {
+    display: none !important; /* Hide the desktop log in mobile; use inline version */
+}
+
+/* Image reassembly on mobile - larger touch targets */
+body.mobile-mode .reassemble-btn-container {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.4rem;
+    padding: 0.5rem 0.75rem;
+}
+
+body.mobile-mode .btn-reassemble {
+    min-height: 40px;
+    padding: 0.5rem 1rem;
+    font-size: var(--font-size-sm);
+    width: 100%;
+    text-align: center;
+}
+
+body.mobile-mode .reassembled-image {
+    max-width: 100%;
+    max-height: 300px;
+}
+
+body.mobile-mode .reassembled-image-info {
+    font-size: var(--font-size-xs);
+}
+
+/* Image upload modal on mobile */
+body.mobile-mode #imageUploadModal .modal-body {
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+body.mobile-mode #imageUploadModal .image-preview-row {
+    flex-direction: column;
+    align-items: center;
+}
+
+body.mobile-mode #imageUploadModal img {
+    max-width: 150px;
+    max-height: 150px;
+}
+
+body.mobile-mode #imageUploadModal .encoding-settings-grid {
+    grid-template-columns: 1fr !important;
+}
+
+body.mobile-mode #imageUploadModal .encoding-settings-grid .form-group[style*="grid-column: span 2"] {
+    grid-column: span 1 !important;
+}
+
+/* Upload Image button prominent on mobile */
+body.mobile-mode #uploadImageButton {
+    min-height: 40px;
+    font-size: var(--font-size-sm);
+}
+
+/* Abort send button on mobile */
+body.mobile-mode .btn-abort-send {
+    min-height: 40px;
+    width: 100%;
+    font-size: var(--font-size-sm);
+}
+
+/* End of mobile rules */
+
+body.mobile-mode .communication-log .log-content {
+    height: 200px;
+}
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .mobile-tab-bar {
+        padding-bottom: env(safe-area-inset-bottom);
+        height: calc(56px + env(safe-area-inset-bottom));
+    }
+
+    body.mobile-mode .main-app {
+        padding-bottom: calc(56px + env(safe-area-inset-bottom));
+    }
+}
