@@ -46,6 +46,9 @@ class WebSocketAPI:
         
         # Track session for each connection
         self.connection_sessions: Dict[WebSocket, str] = {}
+        
+        # Track last successful WS send time per session for flush dedup
+        self._last_ws_send_time: Dict[str, str] = {}
     
     async def _negotiate_auth(self, websocket: WebSocket) -> Optional[str]:
         """
@@ -136,6 +139,11 @@ class WebSocketAPI:
                 'timestamp': datetime.now().isoformat()
             }))
             
+            # Flush any buffered messages that arrived while no WS was connected.
+            # This ensures the client receives messages that were routed between
+            # the last WS disconnect and this new connection.
+            await self._flush_buffered_messages(session, session_id)
+            
             # Listen for messages from client
             await self._handle_client_messages(websocket, session)
             
@@ -218,6 +226,58 @@ class WebSocketAPI:
         
         logger.info(f"Session {session.id} WebSocket callbacks registered ({len(subscriptions)} types)")
     
+    async def _flush_buffered_messages(self, session: Session, session_id: str):
+        """
+        Deliver buffered messages that arrived while no WebSocket was connected.
+        
+        The MessageRouter keeps a rolling buffer of recent messages. When a new
+        WebSocket connects, we send any buffered text/binary/ack messages that
+        arrived after the last successful WebSocket delivery, so the client
+        receives messages it missed during disconnection.
+        """
+        try:
+            message_router = session.gateway.message_router
+            
+            # Get messages since the last successful WS send for this session
+            since = self._last_ws_send_time.get(session_id)
+            if since:
+                buffered = message_router.get_messages_since(since)
+            else:
+                # No previous WS delivery tracked - send ALL buffered messages.
+                # The buffer is capped at 200 messages, so this is bounded.
+                buffered = list(message_router._recent_messages)
+            
+            if not buffered:
+                return
+            
+            # Filter to user-facing message types only
+            user_types = ('text', 'binary', 'binary_complete', 'ack', 'image_complete')
+            user_msgs = [m for m in buffered if m.get('message_type') in user_types]
+            
+            if not user_msgs:
+                return
+            
+            # Map message_type to WS type (same mapping as subscriptions)
+            type_map = {
+                'text': 'message',
+                'binary': 'message',
+                'binary_complete': 'binary_complete',
+                'image_complete': 'image_complete',
+                'ack': 'ack',
+            }
+            
+            logger.info(f"Flushing {len(user_msgs)} buffered messages to session {session_id}")
+            
+            for msg in user_msgs:
+                ws_type = type_map.get(msg.get('message_type'), 'message')
+                await self._send_to_session(session_id, {
+                    'type': ws_type,
+                    'data': msg
+                })
+            
+        except (KeyError, TypeError, ValueError) as e:
+            logger.warning(f"Error flushing buffered messages: {e}")
+    
     async def _handle_client_messages(self, websocket: WebSocket, session: Session):
         """Handle messages from WebSocket client."""
         while True:
@@ -282,13 +342,16 @@ class WebSocketAPI:
     
     async def _send_to_session(self, session_id: str, message: Dict[str, Any]):
         """Send message to all WebSocket connections for a session."""
+        msg_type = message.get('type', '?')
         if session_id not in self.session_connections:
-            logger.debug(f"No WS connections for session {session_id}, message dropped")
+            logger.debug(f"No WS connections for session {session_id}, "
+                        f"message type={msg_type} buffered (no active WS)")
             return
         
         connections = self.session_connections[session_id]
         if not connections:
-            logger.debug(f"Empty WS connection set for session {session_id}, message dropped")
+            logger.debug(f"Empty WS connection set for session {session_id}, "
+                        f"message type={msg_type} buffered (no active WS)")
             return
         
         # Add timestamp to message
@@ -303,12 +366,18 @@ class WebSocketAPI:
         
         # Send to all connections for this session
         disconnected_connections = []
+        sent_ok = False
         for websocket in self.session_connections[session_id]:
             try:
                 await websocket.send_text(message_json)
+                sent_ok = True
             except (ConnectionError, RuntimeError) as e:
                 logger.warning(f"Error sending WebSocket message: {e}")
                 disconnected_connections.append(websocket)
+        
+        # Track last successful send time for buffer flush dedup
+        if sent_ok:
+            self._last_ws_send_time[session_id] = datetime.now().isoformat()
         
         # Clean up disconnected connections
         for websocket in disconnected_connections:

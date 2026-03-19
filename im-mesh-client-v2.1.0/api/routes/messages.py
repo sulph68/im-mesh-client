@@ -1,7 +1,8 @@
 """Message sending routes."""
 
 import logging
-from fastapi import APIRouter, HTTPException, Depends
+from typing import Optional
+from fastapi import APIRouter, HTTPException, Depends, Query
 
 from core.session_manager import Session
 from api.models import SendTextMessageRequest, SendImageRequest, MessageResponse
@@ -63,6 +64,42 @@ def create_message_routes(get_session_dep) -> APIRouter:
             )
         except Exception as e:  # API safety net: HTTP 500
             logger.warning(f"Error sending image segments: {e}")
+            raise HTTPException(status_code=500, detail=str(e))
+
+    @router.get("/messages/recent")
+    async def get_recent_messages(
+        since: Optional[str] = Query(None, description="ISO timestamp to fetch messages after"),
+        session: Session = Depends(get_session_dep)
+    ):
+        """
+        Get recent messages from the server buffer.
+        
+        Used by clients to retrieve messages missed during a WebSocket disconnection.
+        Pass ?since=<ISO timestamp> to get only messages after that time.
+        Without 'since', returns all buffered messages (up to 200).
+        """
+        try:
+            message_router = session.gateway.message_router
+            if since:
+                messages = message_router.get_messages_since(since)
+            else:
+                messages = list(message_router._recent_messages)
+
+            # Filter to only text/binary messages (not acks, node_updates, etc.)
+            user_messages = [
+                m for m in messages
+                if m.get('message_type') in ('text', 'binary', 'binary_complete', 'image_complete')
+            ]
+
+            return {
+                'success': True,
+                'data': {
+                    'messages': user_messages,
+                    'count': len(user_messages)
+                }
+            }
+        except Exception as e:  # API safety net: HTTP 500
+            logger.warning(f"Error fetching recent messages: {e}")
             raise HTTPException(status_code=500, detail=str(e))
 
     return router

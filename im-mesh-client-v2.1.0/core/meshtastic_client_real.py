@@ -277,8 +277,8 @@ class MeshtasticClientReal(PacketProcessorMixin, NodeDataMixin):
     
     async def _notify_callbacks(self, packet_dict: Dict[str, Any]) -> None:
         """Notify all packet callbacks."""
+        msg_type = packet_dict.get('message_type', 'unknown')
         if not self.packet_callbacks:
-            msg_type = packet_dict.get('message_type', 'unknown')
             if msg_type in ('text', 'binary', 'routing'):
                 logger.warning(f"No packet callbacks registered for {msg_type} message from {packet_dict.get('from_node', '?')}")
             return
@@ -289,7 +289,7 @@ class MeshtasticClientReal(PacketProcessorMixin, NodeDataMixin):
                 else:
                     callback(packet_dict)
             except Exception as e:  # Broad: unknown user callback signatures
-                logger.warning(f"Error in packet callback: {e}")
+                logger.warning(f"Error in packet callback: {e}", exc_info=True)
     
     async def flush_pending_packets(self) -> None:
         """Flush any packets that were queued before the event loop was available."""

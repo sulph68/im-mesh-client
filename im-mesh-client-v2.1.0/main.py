@@ -11,6 +11,7 @@ import asyncio
 import logging
 import signal
 import sys
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 # Add project root to path for imports
@@ -59,12 +60,12 @@ def main():
         # Initialize WebSocket API with session manager
         websocket_api = WebSocketAPI(session_manager)
         
-        # Create FastAPI application with session manager
-        app = create_rest_api(session_manager, websocket_api, settings)
-        
-        # Register shutdown event to clean up Meshtastic connections
-        @app.on_event("shutdown")
-        async def shutdown_event():
+        # Create lifespan context manager for startup/shutdown
+        @asynccontextmanager
+        async def lifespan(app):
+            # Startup
+            yield
+            # Shutdown
             logger.info("Shutting down - cleaning up connections...")
             try:
                 await websocket_api.shutdown()
@@ -75,6 +76,9 @@ def main():
             except (ConnectionError, RuntimeError) as e:
                 logger.warning(f"Error shutting down session manager: {e}")
             logger.info("Cleanup complete")
+        
+        # Create FastAPI application with session manager and lifespan
+        app = create_rest_api(session_manager, websocket_api, settings, lifespan=lifespan)
         
         # Install SIGINT handler to force exit after 5 seconds if graceful fails
         _shutdown_count = 0

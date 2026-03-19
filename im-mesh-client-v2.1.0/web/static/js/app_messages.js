@@ -280,8 +280,19 @@ renderChatMessage(messageData, scrollToBottom) {
         const packetId = messageData.packet_id;
         if (packetId) messageElement.setAttribute('data-packet-id', packetId);
         const ackDiv = document.createElement('div');
-        ackDiv.className = 'ack-status ack-pending';
-        ackDiv.textContent = 'Awaiting ack...';
+
+        // Use persisted ack_status from localStorage if available
+        const storedStatus = messageData.ack_status || 'pending';
+        if (storedStatus === 'received') {
+            ackDiv.className = 'ack-status ack-received';
+            ackDiv.textContent = 'Ack received';
+        } else if (storedStatus === 'failed') {
+            ackDiv.className = 'ack-status ack-failed';
+            ackDiv.textContent = messageData.ack_error ? `Nak: ${messageData.ack_error}` : 'Send failed';
+        } else {
+            ackDiv.className = 'ack-status ack-pending';
+            ackDiv.textContent = 'Awaiting ack...';
+        }
         messageElement.appendChild(ackDiv);
     }
 
@@ -367,11 +378,32 @@ _renderTextMessageContent(el, messageData, fromName, time, text, isSent) {
 // Handle incoming message from WebSocket
 addMessage(messageData) {
 
+    // Deduplicate: skip if we already have this message in storage.
+    // Uses routed_at timestamp + from_node as a unique key to catch
+    // buffered messages that arrive both via flush and live routing.
+    if (messageData.routed_at && messageData.from_node && this.storage) {
+        const dedupKey = `${messageData.routed_at}_${messageData.from_node}`;
+        if (!this._seenMessageKeys) this._seenMessageKeys = new Set();
+        if (this._seenMessageKeys.has(dedupKey)) {
+            console.log(`Dedup: skipping duplicate message ${dedupKey}`);
+            return;
+        }
+        this._seenMessageKeys.add(dedupKey);
+        // Keep set size bounded
+        if (this._seenMessageKeys.size > 500) {
+            const arr = Array.from(this._seenMessageKeys);
+            this._seenMessageKeys = new Set(arr.slice(-300));
+        }
+    }
+
     // Notify new message in browser tab title
     this._notifyNewMessageInTitle();
 
     // Resolve sender name
     const fromName = this._resolveSenderName(messageData);
+
+    // Auto-refresh node list if we hear an unknown node
+    this._checkForUnknownNode(messageData);
 
     // Determine routing key (channel vs DM)
     const { msgTargetKey, isDM } = this._resolveMessageTarget(messageData);
@@ -601,6 +633,29 @@ _updateNotificationBadges() {
 },
 
 // Handle node update from WebSocket
+
+/**
+ * Check if a message comes from a node not in our current node list.
+ * If so, trigger a node list refresh from the server so the new/returning
+ * node appears automatically without needing a manual "Refresh Nodes" click.
+ * Debounced to avoid excessive API calls when many messages arrive at once.
+ */
+_checkForUnknownNode(messageData) {
+    const fromNode = messageData.from_node || messageData.from;
+    if (!fromNode || !this.storage) return;
+
+    const nodes = this.storage.getNodes();
+    const known = nodes.some(n => (n.id || n.num) === fromNode);
+    if (known) return;
+
+    // Unknown node detected - debounce the refresh (max once per 10 seconds)
+    const now = Date.now();
+    if (this._lastNodeRefreshTime && (now - this._lastNodeRefreshTime) < 10000) return;
+    this._lastNodeRefreshTime = now;
+
+    console.log(`Unknown node detected: ${fromNode} - auto-refreshing node list`);
+    this.loadNodes();
+},
 
 /**
  * Add (*) to document.title when a new message arrives (if tab is not focused).

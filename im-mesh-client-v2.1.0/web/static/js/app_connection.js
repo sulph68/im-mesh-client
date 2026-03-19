@@ -162,6 +162,7 @@ connectWebSocket() {
 
     this.ws.onopen = () => {
         this.connected = true;
+        const wasReconnect = this._wsReconnectAttempts > 0;
         this._resetWsReconnect();  // Reset reconnect counter on success
         this._startHeartbeat();    // Start heartbeat pings
         this._startStatsRefresh(); // Start periodic stats refresh
@@ -179,6 +180,11 @@ connectWebSocket() {
         this.updateConnectionStatus('connected', 'Connected');
         this.showStatus('Connected to ' + this.meshtasticHost + ':' + this.meshtasticPort);
         this.addSystemMessage(`Real-time connection established to ${this.meshtasticHost}:${this.meshtasticPort}`, 'success');
+
+        // On reconnect, fetch any messages that arrived while WS was down
+        if (wasReconnect) {
+            this._fetchMissedMessages();
+        }
     };
 
         this.ws.onmessage = (event) => {
@@ -201,6 +207,7 @@ connectWebSocket() {
 
         this.ws.onclose = (event) => {
             this.connected = false;
+            this._lastWsDisconnectTime = new Date().toISOString();  // Track disconnect time for missed message retrieval
             this._stopHeartbeat();     // Stop heartbeat pings
             this._stopStatsRefresh();  // Stop stats refresh
             this.logCommunication('IN', 'WebSocket connection closed', 'warning');
@@ -331,6 +338,65 @@ _stopStatsRefresh() {
     if (this._statsRefreshInterval) {
         clearInterval(this._statsRefreshInterval);
         this._statsRefreshInterval = null;
+    }
+},
+
+/**
+ * Fetch messages that were received by the server while the WebSocket was disconnected.
+ * Uses the last known message timestamp to request only new messages from the buffer.
+ * Deduplicates against messages already in localStorage before adding.
+ */
+async _fetchMissedMessages() {
+    if (!this.sessionId) return;
+
+    try {
+        // Determine the "since" timestamp from the last stored message
+        let since = this._lastWsDisconnectTime || null;
+        if (!since && this.storage) {
+            // Fall back: scan stored messages for the most recent timestamp
+            const prefix = `meshtastic_${this.storage.sessionId}_messages_`;
+            let latestTime = '';
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (!key || !key.startsWith(prefix)) continue;
+                try {
+                    const msgs = JSON.parse(localStorage.getItem(key) || '[]');
+                    for (const m of msgs) {
+                        const t = m.timestamp || '';
+                        if (t > latestTime) latestTime = t;
+                    }
+                } catch (_e) { /* ignore parse errors */ }
+            }
+            if (latestTime) since = latestTime;
+        }
+
+        const url = since
+            ? `/api/messages/recent?since=${encodeURIComponent(since)}`
+            : '/api/messages/recent';
+
+        const response = await fetch(url, {
+            headers: { 'X-Session-ID': this.sessionId }
+        });
+
+        if (!response.ok) return;
+
+        const data = await response.json();
+        if (!data.success || !data.data || !data.data.messages) return;
+
+        const missedMessages = data.data.messages;
+        if (missedMessages.length === 0) return;
+
+        console.log(`Fetched ${missedMessages.length} missed message(s) after WS reconnect`);
+        this.logCommunication('IN', `Retrieved ${missedMessages.length} missed message(s)`, 'info');
+
+        // Process each missed message through the normal handler
+        // addMessage() handles dedup via storeMessageForTarget (same timestamp + text = same msg)
+        for (const msg of missedMessages) {
+            this.addMessage(msg);
+        }
+
+    } catch (e) {
+        console.error('Error fetching missed messages:', e);
     }
 }
 });

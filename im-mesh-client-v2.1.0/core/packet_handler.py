@@ -72,6 +72,8 @@ class PacketHandler:
                 logger.debug(f"Packet from {from_node} has no portnum")
                 return
             
+            logger.info(f"PacketHandler: from={from_node} to={to_node} ch={channel} portnum={portnum}")
+            
             # Handle different port numbers
             if portnum == PortNum.TEXT_MESSAGE_APP:
                 await self._handle_text_message(

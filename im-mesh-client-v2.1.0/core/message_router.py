@@ -19,12 +19,19 @@ class MessageRouter:
     
     Distributes messages to WebSocket clients, database storage,
     and other registered handlers based on message type and routing rules.
+    
+    Maintains a rolling buffer of recent messages so clients can
+    fetch any messages missed during a WebSocket disconnection.
     """
+    
+    # Maximum number of recent messages to keep in buffer
+    MAX_RECENT_MESSAGES = 200
     
     def __init__(self):
         self.websocket_clients: Set[Any] = set()  # WebSocket connections
         self.message_handlers: Dict[str, List[Callable]] = {}
         self.broadcast_handlers: List[Callable] = []
+        self._recent_messages: List[Dict[str, Any]] = []  # Rolling buffer
         
     def register_websocket(self, websocket) -> None:
         """Register a WebSocket client for message broadcasting."""
@@ -86,21 +93,30 @@ class MessageRouter:
             # Add routing metadata
             message['routed_at'] = datetime.now().isoformat()
             
+            # Buffer user-facing message types for missed-message retrieval
+            if message_type in ('text', 'binary', 'binary_complete', 'ack',
+                                'image_complete', 'node_update', 'position_update'):
+                self._recent_messages.append(message)
+                if len(self._recent_messages) > self.MAX_RECENT_MESSAGES:
+                    self._recent_messages = self._recent_messages[-self.MAX_RECENT_MESSAGES:]
+            
             # Route to specific handlers
             handler_count = len(self.message_handlers.get(message_type, []))
             if message_type in ('text', 'binary', 'binary_complete', 'ack'):
-                logger.info(f"Routing {message_type} message from {message.get('from_node', '?')} "
-                           f"(handlers={handler_count}, broadcast={len(self.broadcast_handlers)})")
+                logger.info(f"Routing {message_type} from {message.get('from_node', '?')} "
+                           f"(handlers={handler_count})")
             
             if message_type in self.message_handlers:
-                for handler in self.message_handlers[message_type]:
+                for i, handler in enumerate(self.message_handlers[message_type]):
                     try:
                         if asyncio.iscoroutinefunction(handler):
                             await handler(message)
                         else:
                             handler(message)
                     except Exception as e:  # Broad: unknown handler signatures
-                        logger.warning(f"Error in message handler for {message_type}: {e}")
+                        logger.warning(f"Error in message handler for {message_type}: {e}", exc_info=True)
+            elif message_type in ('text', 'binary', 'binary_complete', 'ack'):
+                logger.warning(f"No handlers for message_type={message_type} - message buffered for later delivery")
             
             # Route to broadcast handlers
             for handler in self.broadcast_handlers:
@@ -112,13 +128,13 @@ class MessageRouter:
                 except Exception as e:  # Broad: unknown handler signatures
                     logger.warning(f"Error in broadcast handler: {e}")
             
-            # Route to WebSocket clients
+            # Route to WebSocket clients (legacy path - usually empty)
             await self._broadcast_to_websockets(message)
             
             logger.debug(f"Routed {message_type} message from {message.get('from_node', 'unknown')}")
             
         except (KeyError, TypeError, ValueError) as e:
-            logger.error(f"Error routing message: {e}")
+            logger.error(f"Error routing message: {e}", exc_info=True)
     
     async def route_text_message(self, message: Dict[str, Any]) -> None:
         """Route a text message."""
@@ -233,8 +249,27 @@ class MessageRouter:
                 msg_type: len(handlers) 
                 for msg_type, handlers in self.message_handlers.items()
             },
-            'broadcast_handlers': len(self.broadcast_handlers)
+            'broadcast_handlers': len(self.broadcast_handlers),
+            'recent_message_buffer': len(self._recent_messages)
         }
+    
+    def get_messages_since(self, since_iso: str) -> List[Dict[str, Any]]:
+        """
+        Return buffered messages routed after the given ISO timestamp.
+        Used by clients to retrieve messages missed during a WebSocket disconnect.
+        
+        Args:
+            since_iso: ISO-format timestamp string (e.g. from routed_at)
+            
+        Returns:
+            List of message dicts routed after the given time
+        """
+        result = []
+        for msg in self._recent_messages:
+            routed_at = msg.get('routed_at', '')
+            if routed_at > since_iso:
+                result.append(msg)
+        return result
     
     async def broadcast_system_message(self, message: str, level: str = 'info') -> None:
         """Broadcast a system message to all clients."""

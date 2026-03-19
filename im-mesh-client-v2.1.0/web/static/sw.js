@@ -4,7 +4,7 @@
  * API requests are always network-first (no caching of live mesh data).
  */
 
-const CACHE_NAME = 'im-mesh-v26';
+const CACHE_NAME = 'im-mesh-v27';
 const STATIC_ASSETS = [
     '/',
     '/static/storage.js',

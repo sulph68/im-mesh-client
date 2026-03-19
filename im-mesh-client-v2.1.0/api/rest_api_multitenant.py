@@ -56,13 +56,14 @@ def create_session_dependency(session_manager: SessionManager):
     return get_session
 
 
-def create_rest_api(session_manager: SessionManager, websocket_api: WebSocketAPI, settings: Settings) -> FastAPI:
+def create_rest_api(session_manager: SessionManager, websocket_api: WebSocketAPI, settings: Settings, lifespan=None) -> FastAPI:
     """Create FastAPI application with session-aware endpoints."""
 
     app = FastAPI(
         title="Im Mesh Client API",
         description="Multi-tenant REST API for Meshtastic communication",
-        version="2.1.0"
+        version="2.1.0",
+        lifespan=lifespan
     )
 
     app.add_middleware(

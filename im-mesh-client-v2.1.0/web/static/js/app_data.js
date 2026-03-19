@@ -113,7 +113,8 @@ handleConnectionStatusUpdate(statusData) {
 
 /**
  * Handle an ack/nak received from the mesh network.
- * Finds the sent message element by packet_id and updates its ack status indicator.
+ * Finds the sent message element by packet_id, updates the DOM indicator,
+ * and persists the ack status into localStorage so it survives panel switches.
  */
 _handleAckReceived(ackData) {
     if (!ackData || !ackData.request_id) return;
@@ -129,13 +130,16 @@ _handleAckReceived(ackData) {
         this._imageSegmentAckHandler(ackData);
     }
 
-    // Find the message element with this packet_id
+    // Persist ack status in localStorage so it survives panel switches
+    this._persistAckStatus(requestId, ackOk, errorReason);
+
+    // Find the message element with this packet_id (may not be in DOM if on different panel)
     const container = document.getElementById('messagesContainer');
     if (!container) return;
 
     const msgEl = container.querySelector(`[data-packet-id="${requestId}"]`);
     if (!msgEl) {
-        console.log(`No message element found for packetId=${requestId}`);
+        console.log(`No message element found for packetId=${requestId} (may be on different panel)`);
         return;
     }
 
@@ -148,6 +152,46 @@ _handleAckReceived(ackData) {
     } else {
         ackDiv.className = 'ack-status ack-failed';
         ackDiv.textContent = `Nak: ${errorReason}`;
+    }
+},
+
+/**
+ * Persist ack status into localStorage message history.
+ * Scans all message_channel_* and message_node_* keys for the matching packet_id
+ * and updates ack_status so it is correct when the user switches back to that panel.
+ */
+_persistAckStatus(packetId, ackOk, errorReason) {
+    if (!this.storage || !packetId) return;
+
+    try {
+        // Scan all stored message keys for this session
+        const prefix = `meshtastic_${this.storage.sessionId}_messages_`;
+        for (let i = 0; i < localStorage.length; i++) {
+            const fullKey = localStorage.key(i);
+            if (!fullKey || !fullKey.startsWith(prefix)) continue;
+
+            const messages = JSON.parse(localStorage.getItem(fullKey) || '[]');
+            let updated = false;
+
+            for (let j = messages.length - 1; j >= 0; j--) {
+                const msg = messages[j];
+                if (msg.packet_id === packetId && msg.ack_status === 'pending') {
+                    msg.ack_status = ackOk ? 'received' : 'failed';
+                    if (!ackOk && errorReason) {
+                        msg.ack_error = errorReason;
+                    }
+                    updated = true;
+                    break;  // packet_id is unique
+                }
+            }
+
+            if (updated) {
+                localStorage.setItem(fullKey, JSON.stringify(messages));
+                break;  // Found and updated, no need to scan more keys
+            }
+        }
+    } catch (e) {
+        console.error('Error persisting ack status:', e);
     }
 },
 
