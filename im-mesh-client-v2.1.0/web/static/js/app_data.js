@@ -67,9 +67,13 @@ handleWebSocketMessage(data) {
             break;
 
         case 'error':
-            console.error('Server error:', data.data);
-            if (data.data && data.data.error_message) {
-                this.showMessage(data.data.error_message, 'error');
+            console.error('Server error:', data.message || data.data);
+            const errMsg = data.message || (data.data && data.data.error_message) || 'Unknown server error';
+            this.showMessage(errMsg, 'error');
+            // If session not found, stop reconnecting and show login screen
+            if (errMsg.includes('Session not found')) {
+                this._resetWsReconnect();
+                this._wsSessionLost = true;  // Flag to prevent auto-reconnect in onclose
             }
             break;
 

@@ -216,6 +216,20 @@ connectWebSocket() {
             // Show connection lost message in the chat/messages area
             this.addConnectionLostMessage();
 
+            // If session was lost (server restarted), go back to login screen
+            // instead of endlessly trying to reconnect
+            if (this._wsSessionLost) {
+                this._wsSessionLost = false;
+                this.sessionId = null;
+                this.connected = false;
+                this._initialDataLoaded = false;
+                document.getElementById('sessionSetup').style.display = 'flex';
+                document.getElementById('mainApp').style.display = 'none';
+                this.loadExistingSessions();
+                document.title = 'Im Mesh Client';
+                return;
+            }
+
             // Auto-reconnect if we have a valid session
             if (this.sessionId && event.code !== 1000) {
                 // 1000 = normal close (user-initiated), don't reconnect
@@ -317,12 +331,7 @@ _handlePong(data) {
 _updateLatencyDisplay() {
     const statusText = document.getElementById('statusText');
     if (!statusText || !this.connected) return;
-
-    if (this._lastLatencyMs !== null && this._lastLatencyMs < 30000) {
-        statusText.textContent = `Connected (${this._lastLatencyMs}ms)`;
-    } else {
-        statusText.textContent = 'Connected';
-    }
+    statusText.textContent = 'Connected';
 },
 
 _startStatsRefresh() {

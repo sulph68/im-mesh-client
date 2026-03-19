@@ -128,8 +128,9 @@ async _tryAutoRestore() {
         // Check if this session is still alive on the server
         const response = await fetch(`/api/sessions/${sessionId}`);
         if (!response.ok) {
-            // Session is gone - clean up mapping
-            this._removeSessionMapping(lastHost, parseInt(lastPort));
+            // Session is gone from server (e.g. server restarted) - but keep
+            // the localStorage mapping so the session_id is reused on next login,
+            // preserving message history.
             return;
         }
 
@@ -302,25 +303,36 @@ async deleteSession(sessionId, host, port) {
     }
 
     try {
-        const response = await fetch(`/api/sessions/${sessionId}?delete_data=true`, {
-            method: 'DELETE'
-        });
-
-        if (response.ok) {
-            // Clean up localStorage for this session
-            this._removeSessionMappingById(sessionId);
-
-            // Also clear the MeshtasticStorage data for this session
-            const prefix = `meshtastic_${sessionId}_`;
-            const keysToRemove = [];
-            for (let i = 0; i < localStorage.length; i++) {
-                const key = localStorage.key(i);
-                if (key && key.startsWith(prefix)) {
-                    keysToRemove.push(key);
-                }
-            }
-            keysToRemove.forEach(k => localStorage.removeItem(k));
+        // Try to delete on server (may 404 if server was restarted - that's OK)
+        try {
+            await fetch(`/api/sessions/${sessionId}?delete_data=true`, {
+                method: 'DELETE'
+            });
+        } catch (_fetchErr) {
+            // Server unreachable - still clean up localStorage below
         }
+
+        // Always clean up localStorage regardless of server response
+        this._removeSessionMappingById(sessionId);
+
+        // Clear last-host/port if they match the deleted session
+        const lastHost = localStorage.getItem('meshtastic_last_host');
+        const lastPort = localStorage.getItem('meshtastic_last_port');
+        if (lastHost === host && String(lastPort) === String(port)) {
+            localStorage.removeItem('meshtastic_last_host');
+            localStorage.removeItem('meshtastic_last_port');
+        }
+
+        // Also clear the MeshtasticStorage data for this session
+        const prefix = `meshtastic_${sessionId}_`;
+        const keysToRemove = [];
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key && key.startsWith(prefix)) {
+                keysToRemove.push(key);
+            }
+        }
+        keysToRemove.forEach(k => localStorage.removeItem(k));
 
         // Refresh the sessions list
         this.loadExistingSessions();
