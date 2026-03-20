@@ -1,6 +1,13 @@
 # Im Mesh Client
 
 A web-based Meshtastic mesh radio client for messaging, image transfer, and node management.
+The key purpose of this was to investigate a way to compress images in 1/2/4 bit with an efficient encoding and compression model to transmit small images over the Meshtastic Network.
+
+It makes use of RLE, Nibble and XOR methods to achieve reasonable compression of 1 bit images of size 64x64 together with heatshrink2.
+
+It can transmit images using text strings with base64 encoding, or via the custom Meshtastic port as a binary message fully leveraginh the payload.
+
+This client will assist in the transmission, encoding and reassembly of image segments.
 
 This project was created using AI within [PAVE](https://github.com/cnrai/pave-dist).
 
