@@ -368,12 +368,17 @@ createNodeElement(node) {
             ${statusLine}
         </div>
         <div class="node-actions">
-            <button onclick="window.meshtasticClient.selectNode('${safeNodeId}')" class="btn btn-small">Select</button>
-            <button onclick="window.meshtasticClient.toggleFavorite('${safeNodeId}')" class="btn btn-small btn-outline" title="Toggle Favorite">
+            <button onclick="event.stopPropagation(); window.meshtasticClient.selectNode('${safeNodeId}')" class="btn btn-small">Select</button>
+            <button onclick="event.stopPropagation(); window.meshtasticClient.toggleFavorite('${safeNodeId}')" class="btn btn-small btn-outline" title="Toggle Favorite">
                 ${node.isFavorite ? '⭐' : '☆'}
             </button>
         </div>
     `;
+
+    // Make entire node card clickable for select/unselect
+    nodeElement.addEventListener('click', () => {
+        this.selectNode(safeNodeId);
+    });
 
     return nodeElement;
 },

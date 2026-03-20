@@ -166,6 +166,7 @@ connectWebSocket() {
         this._resetWsReconnect();  // Reset reconnect counter on success
         this._startHeartbeat();    // Start heartbeat pings
         this._startStatsRefresh(); // Start periodic stats refresh
+        this._startNodeRefresh();  // Start periodic node list refresh
         this.logCommunication('IN', 'WebSocket connection established', 'success');
 
         // Authenticate with session ID
@@ -210,6 +211,7 @@ connectWebSocket() {
             this._lastWsDisconnectTime = new Date().toISOString();  // Track disconnect time for missed message retrieval
             this._stopHeartbeat();     // Stop heartbeat pings
             this._stopStatsRefresh();  // Stop stats refresh
+            this._stopNodeRefresh();   // Stop node list refresh
             this.logCommunication('IN', 'WebSocket connection closed', 'warning');
             this.updateConnectionStatus('disconnected', 'Disconnected');
 
@@ -347,6 +349,23 @@ _stopStatsRefresh() {
     if (this._statsRefreshInterval) {
         clearInterval(this._statsRefreshInterval);
         this._statsRefreshInterval = null;
+    }
+},
+
+_startNodeRefresh() {
+    this._stopNodeRefresh();
+    // Refresh node list every 60 seconds to keep online status current
+    this._nodeRefreshInterval = setInterval(() => {
+        if (this.connected && this.sessionId) {
+            this.loadNodes();
+        }
+    }, 60000);
+},
+
+_stopNodeRefresh() {
+    if (this._nodeRefreshInterval) {
+        clearInterval(this._nodeRefreshInterval);
+        this._nodeRefreshInterval = null;
     }
 },
 
