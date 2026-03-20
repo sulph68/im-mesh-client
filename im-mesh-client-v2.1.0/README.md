@@ -2,7 +2,7 @@
 
 A web-based Meshtastic mesh radio client for messaging, image transfer, and node management.
 
-This project was created using AI within [PAVE](https://github.com/nicholasgriffintn/pave).
+This project was created using AI within [PAVE](https://github.com/cnrai/pave-dist).
 
 ## Requirements
 
